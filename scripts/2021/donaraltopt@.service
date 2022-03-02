@@ -1,0 +1,7 @@
+[Unit]
+Description=donaraltopt
+
+[Service]
+ExecStart=/usr/local/bin/donaraltopt %i
+WorkingDirectory=/root/donaraltopt/
+

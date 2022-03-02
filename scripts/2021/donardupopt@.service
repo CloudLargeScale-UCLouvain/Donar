@@ -1,0 +1,7 @@
+[Unit]
+Description=donardupopt
+
+[Service]
+ExecStart=/usr/local/bin/donardupopt %i
+WorkingDirectory=/root/donardupopt/
+

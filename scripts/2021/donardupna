@@ -1,0 +1,101 @@
+#!/bin/bash
+
+red()    { IFS= ; while read -r line; do echo -e '\e[31m'$line'\e[0m'; done; }
+green()  { IFS= ; while read -r line; do echo -e '\e[32m'$line'\e[0m'; done; }
+yellow() { IFS= ; while read -r line; do echo -e '\e[33m'$line'\e[0m'; done; }
+blue()   { IFS= ; while read -r line; do echo -e '\e[34m'$line'\e[0m'; done; }
+purple() { IFS= ; while read -r line; do echo -e '\e[35m'$line'\e[0m'; done; }
+cyan()   { IFS= ; while read -r line; do echo -e '\e[36m'$line'\e[0m'; done; }
+
+SOCK_PORT=$((9000+$1))
+CONTROL_PORT=$((9100+$1))
+LOCAL_PORT=$((9200+$1))
+DONAR_PORT=$((7000+$1*12))
+
+while true; do
+touch /tmp/empty
+rm -rf /tmp/tor$CONTROL_PORT 
+/usr/local/bin/tor3 \
+  -f /tmp/empty --defaults-torrc /tmp/empty \
+  --hush \
+  --UseEntryGuards 0 \
+  --SocksPort 0 \
+  --ControlPort $CONTROL_PORT \
+  --HiddenServiceNonAnonymousMode 1 \
+  --HiddenServiceSingleHopMode 1 \
+  --DataDirectory /tmp/tor$CONTROL_PORT | red &
+sleep 1
+
+rm -rf /tmp/tor$SOCK_PORT 
+/usr/local/bin/tor3 \
+  -f /tmp/empty --defaults-torrc /tmp/empty \
+  --hush \
+  --UseEntryGuards 1 \
+  --NumEntryGuards 2 \
+  --NumPrimaryGuards 2 \
+  --SocksPort "127.0.0.1:$SOCK_PORT IsolateDestPort IsolateDestAddr IsolateClientAddr" \
+  --DataDirectory /tmp/tor$SOCK_PORT | green &
+sleep 1
+
+rm -rf state_$LOCAL_PORT/
+mkdir state_$LOCAL_PORT/
+pushd .
+cd state_$LOCAL_PORT/
+/usr/local/bin/donar \
+  -s \
+  -a lightning \
+  -q $CONTROL_PORT \
+  -k $DONAR_PORT \
+  -l 12 \
+  -p 'fast_count=3!tick_tock=0!measlat=0!window=2000' \
+  -b \
+  -n \
+  -e $LOCAL_PORT 2>&1 | yellow &
+sleep 1
+
+/usr/local/bin/donar \
+  -c \
+  -a lightning \
+  -q $SOCK_PORT \
+  -k $DONAR_PORT \
+  -o ./onion_services.pub \
+  -l 12 \
+  -p 'fast_count=3!tick_tock=0!measlat=0!window=2000' \
+  -b \
+  -r $LOCAL_PORT 2>&1 | blue &
+sleep 1
+popd
+
+/usr/local/bin/measlat \
+  -l \
+  -t udp \
+  -h 127.0.0.1 \
+  -p $LOCAL_PORT \
+  -c 135000 \
+  -i 40 \
+  -m donardupna \
+  -s 172 2>&1 | cyan &
+sleep 1
+
+/usr/local/bin/measlat \
+  -t udp \
+  -h 127.13.3.7 \
+  -p $LOCAL_PORT \
+  -b \
+  -c 1 \
+  -i 5000 \
+  -m donardupna \
+  -s 172 2>&1 | purple
+
+/usr/local/bin/measlat \
+  -t udp \
+  -h 127.13.3.7 \
+  -p $LOCAL_PORT \
+  -c 135000 \
+  -i 40 \
+  -m donardupna \
+  -s 172 2>&1 | purple
+
+kill -9 $(jobs -p)
+sleep 5
+done

@@ -1,0 +1,7 @@
+[Unit]
+Description=donardupna
+
+[Service]
+ExecStart=/usr/local/bin/donardupna %i
+WorkingDirectory=/root/donardupna/
+

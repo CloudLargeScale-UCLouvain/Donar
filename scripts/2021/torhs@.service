@@ -1,0 +1,7 @@
+[Unit]
+Description=torhs
+
+[Service]
+ExecStart=/usr/local/bin/torhs %i
+WorkingDirectory=/root/torhs/
+

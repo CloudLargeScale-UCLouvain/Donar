@@ -1,0 +1,7 @@
+[Unit]
+Description=torfone
+
+[Service]
+ExecStart=/usr/local/bin/torfone %i
+WorkingDirectory=/root/torfone/
+

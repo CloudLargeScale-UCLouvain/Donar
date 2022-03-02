@@ -1,0 +1,18 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Donar, two-way anonymity VoIP over Tor
+Upstream-Contact: WIDE, Inria <wide@inria.fr>
+Source: https://gitlab.inria.fr/WIDE/donar
+
+Files: dist/* scripts/* terraform/* CMakeLists.txt create_binaries.sh Dockerfile .dockerignore .gitignore
+Copyright: 2019 Quentin Dufour <quentin@dufour.io>
+Copyright: 2019 Inria <contact@inria.fr>
+License: GPL-3.0-only
+
+Files: assets/i_have_a_dream.mp3
+Copyright: Martin Luther King Jr.
+License: CC0-1.0
+
+Files: README.md
+Copyright: 2019 Quentin Dufour <quentin@dufour.io>
+Copyright: 2019 Inria <contact@inria.fr>
+License: CC0-1.0

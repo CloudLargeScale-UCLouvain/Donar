@@ -1,0 +1,7 @@
+[Unit]
+Description=torhsna
+
+[Service]
+ExecStart=/usr/local/bin/torhsna %i
+WorkingDirectory=/root/torhsna/
+

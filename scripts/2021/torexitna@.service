@@ -1,0 +1,6 @@
+[Unit]
+Description=torexitna
+
+[Service]
+ExecStart=/usr/local/bin/torexitna %i
+WorkingDirectory=/root/torexitna/

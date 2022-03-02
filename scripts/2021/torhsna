@@ -1,0 +1,57 @@
+#!/bin/bash
+
+while true; do
+SOCK_PORT=$((9000+$1))
+CONTROL_PORT=$((9100+$1))
+LOCAL_PORT=$((9200+$1))
+
+echo "tor daemon serv"
+touch /tmp/empty
+/usr/local/bin/tor3 \
+  -f /tmp/empty --defaults-torrc /tmp/empty \
+  --UseEntryGuards 0 \
+  --SocksPort 0 \
+  --ControlPort $CONTROL_PORT \
+  --HiddenServiceNonAnonymousMode 1 \
+  --HiddenServiceSingleHopMode 1 \
+  --DataDirectory /tmp/tor$CONTROL_PORT &
+
+echo "tor client serv"
+/usr/local/bin/tor3 \
+  -f /tmp/empty --defaults-torrc /tmp/empty \
+  --UseEntryGuards 0 \
+  --SocksPort "127.0.0.1:$SOCK_PORT IsolateDestPort IsolateDestAddr IsolateClientAddr" \
+  --DataDirectory /tmp/tor$SOCK_PORT &
+
+sleep 5
+
+echo "measlat serv"
+rm -f os_${LOCAL_PORT}.{pub,priv}
+/usr/local/bin/measlat \
+  -l \
+  -t tor \
+  -q $CONTROL_PORT \
+  -p $LOCAL_PORT \
+  -c 135000 \
+  -i 40 \
+  -s 172 \
+  -n \
+  -m torhsna &
+
+until [ -f os_${LOCAL_PORT}.pub ]; do sleep 1; done
+
+echo "measlat cli"
+/usr/local/bin/measlat \
+  -t tor \
+  -q $SOCK_PORT \
+  -h $(cat os_${LOCAL_PORT}.pub).onion \
+  -p $LOCAL_PORT \
+  -c 135000 \
+  -i 40 \
+  -s 172 \
+  -m torhsna
+
+kill -9 $(jobs -p)
+
+sleep 5
+done

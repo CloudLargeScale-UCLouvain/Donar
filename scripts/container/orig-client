@@ -1,0 +1,9 @@
+#!/bin/bash
+mkdir -p $4/{log,shared,res}
+
+pushd $4/shared > /dev/null
+HS="`cat onion_services.pub | head -n1`.onion"
+popd > /dev/null
+
+measlat -h $HS -p 7500 -t tor -r -s $3 > /dev/null 2> $4/log/client-bootstrap-stderr.log # Used to wait for connections
+measlat -h $HS -p 7500 -t tor -c $1 -i $2 -s $3 > $4/log/client-measlat-stdout.log 2> $4/log/client-measlat-stderr.log

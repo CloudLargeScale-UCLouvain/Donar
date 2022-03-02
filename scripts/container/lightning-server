@@ -1,0 +1,36 @@
+#!/bin/bash
+mkdir -p $6/{log,shared}
+cd $6/shared
+
+#echo -e 'authenticate ""\nsetevents extended circ circ_minor stream orconn addrmap status_general status_client guard info notice warn err newdesc descchanged ns status_server stream_bw clients_seen hs_desc network_liveness' | \
+#  nc --no-shutdown 127.0.0.1 9051 | \
+#  ts '<%b %d %H:%M:%.S>' \
+#> ../log/server-tor-events-stdout.log 2> ../log/server-tor-events-stderr.log &
+
+#strace \
+#  -s 800 \
+#  -f \
+#  -e trace=network,epoll_wait,epoll_create,epoll_create1,epoll_ctl,epoll_pwait,close \
+#  -p 1 \
+#  -o /dev/stdout | \
+#  ts '<%b %d %H:%M:%.S>' \
+#> ../log/server-strace-tor-stdout.log 2> ../log/server-strace-tor-stderr.log &
+
+donar \
+  -a lightning \
+  -s \
+  -l $4 \
+  -p $5 \
+  -e 9000 \
+> ../log/server-donar-stdout.log 2> ../log/server-donar-stderr.log &
+
+#strace \
+#  -s 800 \
+#  -f \
+#  -e trace=network,epoll_wait,epoll_create,epoll_create1,epoll_ctl,epoll_pwait,close \
+#  -p `pidof donar` \
+#  -o /dev/stdout | \
+#  ts '<%b %d %H:%M:%.S>' \
+#> ../log/server-strace-donar-stdout.log 2> ../log/server-strace-donar-stderr.log &
+
+measlat -h 127.0.0.1 -p 9000 -l -c $1 -i $2 -s $3 > ../log/server-measlat-stdout.log 2> ../log/server-measlat-stderr.log

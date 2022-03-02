@@ -1,0 +1,5 @@
+#!/bin/bash
+mkdir -p $1/{log,shared,res}
+cd $1/shared
+donar -a naive -s -e 9000 -v > ../log/server-donar-stdout.log 2> ../log/server-donar-stderr.log &
+udpecho -p 9000 > ../log/server-udpecho-stdout.log 2> ../log/server-udpecho-stderr.log

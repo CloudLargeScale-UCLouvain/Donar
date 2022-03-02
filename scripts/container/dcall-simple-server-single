@@ -1,0 +1,26 @@
+#!/bin/bash
+mkdir -p $3/{log,shared}
+cd $3/shared
+
+donar \
+  -a naive \
+  -s \
+  -n \
+  -l $1 \
+  -e 5000 \
+  -r 5001 \
+> ../log/server-donar-stdout.log 2> ../log/server-donar-stderr.log &
+
+sleep 1
+tail -f ../log/server-donar-stdout.log | grep -q "=== Our 1 requested circuits are now up ===" \
+> ../log/server-measboot-stdout.log 2> ../log/server-measboot-stderr.log &
+
+dcall \
+  -t filesrc \
+  -a file:///assets/i_have_a_dream.mp3 \
+  -s fakesink \
+  -b 127.0.0.1 \
+  -p 5001 \
+  -l $2 \
+  -d ../log/server-dcall-gstreamer.log \
+> ../log/server-dcall-stdout.log 2> ../log/server-dcall-stderr.log

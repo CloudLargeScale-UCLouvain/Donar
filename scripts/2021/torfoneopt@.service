@@ -1,0 +1,7 @@
+[Unit]
+Description=torfoneopt
+
+[Service]
+ExecStart=/usr/local/bin/torfoneopt %i
+WorkingDirectory=/root/torfoneopt/
+

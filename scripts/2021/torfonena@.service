@@ -1,0 +1,7 @@
+[Unit]
+Description=torfonena
+
+[Service]
+ExecStart=/usr/local/bin/torfonena %i
+WorkingDirectory=/root/torfonena/
+

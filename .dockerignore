@@ -1,0 +1,6 @@
+scripts/*
+!scripts/container/*
+res/*
+out/*
+log/*
+r/*

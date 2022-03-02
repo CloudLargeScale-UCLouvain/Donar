@@ -1,0 +1,5 @@
+.swrc
+*.swp
+.terraform/*
+*.lock.hcl
+terraform.*

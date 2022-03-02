@@ -1,0 +1,58 @@
+#!/bin/bash
+LPORT="${NLINKS:-9000}"
+RPORT="${NLINKS:-9000}"
+NLINKS="${NLINKS:-16}"
+SCHED="${SCHED:-tick_tock=0}"
+LOGS="/tmp/donar_log"
+mkdir -p $LOGS
+echo "[+] Log folder is $LOGS"
+
+tor2 -f /etc/torrc_simple > $LOGS/tor.stdout 2> $LOGS/tor.stderr &
+echo "[+] Started Tor"
+sleep 2
+
+echo "[+] Please enter links and finish with an empty line"
+while read line; do
+  [ -z "$line" ] && break
+  echo $line >> onion_services.pub
+done
+
+donar \
+  -a lightning \
+  -c \
+  -o onion_services.pub \
+  -l $NLINKS \
+  -p $SCHED \
+  -e $LPORT \
+  -r $RPORT \
+> $LOGS/client-donar-stdout.log 2> $LOGS/client-donar-stderr.log &
+echo "[+] Started Donar. Local port is $LPORT, remote port is $RPORT."
+
+gst-launch-1.0 \
+  autoaudiosrc ! \
+    webrtcdsp ! \
+    queue ! \
+    audioresample ! \
+    opusenc audio-type=voice inband-fec=FALSE frame-size=40 bitrate=32000 dtx=TRUE ! \
+    rtpopuspay ! \
+    udpsink host=127.13.3.7 port=9000 async=FALSE \
+  udpsrc port=9000 caps="application/x-rtp" ! \
+    rtpjitterbuffer do-lost=TRUE do-retransmission=FALSE latency=10 ! \
+    rtpopusdepay ! \
+    opusdec plc=TRUE use-inband-fec=FALSE ! \
+    audioresample ! \
+    webrtcechoprobe ! \
+    autoaudiosink > $LOGS/gstreamer.stdout 2> $LOGS/gstreamer.stderr &
+echo "[+] Started GStreamer"
+
+echo "[+] Waiting for connections"
+connections=0
+while [ $connections -ne $NLINKS ]; do
+  sleep 1
+  connections=$(grep 'Succeeded,' $LOGS/client-donar-stdout.log | wc -l)
+  echo -ne "Connecting: $connections/$NLINKS\033[0K\r"
+done
+echo "Ready"
+
+echo "[+] Let's rocks!"
+wait

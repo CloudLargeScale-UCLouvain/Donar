@@ -1,0 +1,23 @@
+#!/bin/bash
+
+while true; do
+SOCK_PORT=$1
+/usr/local/bin/tor3 \
+  --UseEntryGuards 0 \
+  --SocksPort "127.0.0.1:$SOCK_PORT IsolateDestPort IsolateDestAddr IsolateClientAddr" \
+  --DataDirectory /tmp/tor$SOCK_PORT &
+
+sleep 5
+
+/usr/local/bin/measlat \
+  -t tor \
+  -q $SOCK_PORT \
+  -h $(curl https://ifconfig.me) \
+  -p 443 \
+  -c 135000 \
+  -i 40 \
+  -s 172 \
+  -m torexitna
+
+kill $!
+done

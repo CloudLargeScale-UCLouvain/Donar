@@ -1,0 +1,40 @@
+#!/bin/bash
+
+declare -A circuits
+declare -A streams
+
+while read l; do
+  id=$(echo $l|grep -Po '^\d+')
+  circ=$(echo $l \
+    | grep -Po '[^ ]*$' \
+    | sed 's/,/ /g' \
+    | tr -d "\r")
+    #echo $id ++ ${circ[@]}
+    circuits[$id]=$circ
+done <<< $( {
+nc 127.0.0.1 9051 <<EOF
+authenticate ""
+getinfo circuit-status
+quit
+EOF
+} | grep -Po '^\d+ BUILT [^ ]*' )
+
+while read l; do
+  id=$(echo $l \
+    | grep -Po '^\d+ SUCCEEDED \d+' \
+    |grep -Po '\d+$')
+  url=$(echo $l \
+    |grep -Po '[^ ]*$' \
+    |tr -d "\r")
+  streams[$id]=$url
+done <<< $( {
+nc 127.0.0.1 9051 <<EOF
+authenticate ""
+getinfo stream-status
+quit
+EOF
+} | grep -Po '^\d+ SUCCEEDED \d+ [^ ]*' )
+
+for key in "${!streams[@]}"; do
+  echo "${streams[$key]} --> ${circuits[$key]}"
+done

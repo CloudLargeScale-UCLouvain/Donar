@@ -1,0 +1,13 @@
+#!/bin/bash
+mkdir -p $5/{log,shared,res}
+donar \
+  -a dup2 \
+  -c \
+  -o $5/shared/onion_services.pub \
+  -l $4 \
+  -r 9000 \
+> $5/log/client-donar-stdout.log 2> $5/log/client-donar-stderr.log &
+sleep 2
+
+measlat -h 127.13.3.7 -p 9000 -r -s $3 > $5/log/client-measboot-stdout.log 2> $5/log/client-measboot-stderr.log
+measlat -h 127.13.3.7 -p 9000 -c $1 -i $2 -s $3 > $5/log/client-measlat-stdout.log 2> $5/log/client-measlat-stderr.log

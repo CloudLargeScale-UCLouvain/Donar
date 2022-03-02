@@ -1,0 +1,14 @@
+#!/bin/bash
+mkdir -p $4/{log,shared}
+cd $4/shared
+
+donar \
+  -a thunder \
+  -s \
+  -l $1 \
+  -p jitter=$2,scheduler=1 \
+  -b \
+  -e 9000 \
+> ../log/server-donar-stdout.log 2> ../log/server-donar-stderr.log &
+
+udpecho -p 9000 -m -s $3 > ../log/server-udpecho-stdout.log 2> ../log/server-udpecho-stderr.log

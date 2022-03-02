@@ -1,0 +1,9 @@
+#!/bin/bash
+
+sleep 1
+echo "sync_barrier_start"
+nc -v --udp 127.13.3.7 $2 --sh-exec 'while true; do sleep 1; echo a; done' &
+nc -v --udp --listen 127.0.0.1 $1 --sh-exec 'killall -9 nc'
+echo "sync_barrier_release"
+sleep 10
+echo "sync_barrier_done"

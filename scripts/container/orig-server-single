@@ -1,0 +1,4 @@
+#!/bin/bash
+mkdir -p $4/{log,shared}
+cd $4/shared
+measlat -t tor -p 7500 -n -l -c $1 -i $2 -s $3 > ../log/server-measlat-stdout.log 2> ../log/server-measlat-stderr.log

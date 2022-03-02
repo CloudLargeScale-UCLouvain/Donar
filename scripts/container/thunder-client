@@ -1,0 +1,15 @@
+#!/bin/bash
+mkdir -p $6/{log,shared,res}
+donar \
+  -a thunder \
+  -c \
+  -o $6/shared/onion_services.pub \
+  -l $4 \
+  -p jitter=$5,scheduler=1 \
+  -b \
+  -r 9000 \
+> $6/log/client-donar-stdout.log 2> $6/log/client-donar-stderr.log &
+sleep 2
+
+measlat -h 127.13.3.7 -p 9000 > /dev/null 2>&1 # Used to wait for connections
+measlat -h 127.13.3.7 -p 9000 -c $1 -i $2 -s $3 > $6/res/thunder.csv 2> $6/log/client-measlat-stderr.log

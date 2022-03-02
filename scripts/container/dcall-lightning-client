@@ -1,0 +1,27 @@
+#!/bin/bash
+mkdir -p $4/{log,shared,res}
+
+donar \
+  -a lightning \
+  -c \
+  -o $4/shared/onion_services.pub \
+  -l $1 \
+  -p $2 \
+  -b \
+  -e 5001 \
+  -r 5000 \
+> $4/log/client-donar-stdout.log 2> $4/log/client-donar-stderr.log &
+
+sleep 1
+tail -f $4/log/server-donar-stdout.log | grep -q "=== Our 12 requested circuits are now up ===" \
+> $4/log/client-measboot-stdout.log 2> $4/log/client-measboot-stderr.log 
+
+dcall \
+  -t filesrc \
+  -a file:///assets/i_have_a_dream.mp3 \
+  -s fakesink \
+  -b 127.0.0.1 \
+  -c 5001 \
+  -l $3 \
+  -d $4/log/client-dcall-gstreamer.log \
+> $4/log/client-dcall-stdout.log 2> $4/log/client-dcall-stderr.log

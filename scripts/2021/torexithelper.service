@@ -1,0 +1,6 @@
+[Unit]
+Description=torexit
+
+[Service]
+ExecStart=/usr/local/bin/torecho -s 172 -p 443
+

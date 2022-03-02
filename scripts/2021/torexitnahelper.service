@@ -1,0 +1,6 @@
+[Unit]
+Description=torexitnahelper
+
+[Service]
+ExecStart=/usr/local/bin/measlat -l -t tcp -p 443 -c 135000 -i 40 -s 172 -m torexitnat
+WorkingDirectory=/root/torexitna/

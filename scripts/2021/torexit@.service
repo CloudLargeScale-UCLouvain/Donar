@@ -1,0 +1,6 @@
+[Unit]
+Description=torexit
+
+[Service]
+ExecStart=/usr/local/bin/torexit %i
+WorkingDirectory=/root/torexit/

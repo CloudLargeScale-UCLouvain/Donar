@@ -1,0 +1,7 @@
+[Unit]
+Description=donaralt
+
+[Service]
+ExecStart=/usr/local/bin/donaralt %i
+WorkingDirectory=/root/donaralt/
+

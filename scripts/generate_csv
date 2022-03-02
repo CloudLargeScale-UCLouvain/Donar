@@ -1,0 +1,159 @@
+#!/bin/bash
+
+cat <<EOF
+===
+witness
+===
+EOF
+
+echo "latencies global"
+{ echo "delta" ; ls|grep '^witness-'|while read -r line; do cat $line/res/witness.csv|grep -Po "\d*µs"|grep -Po "\d*"; done } > witness_latencies_global.csv
+echo "latencies distri"
+{ echo "hs,type,delta";ls|grep '^witness-'|while read -r line; do cat $line/res/witness.csv|grep -Po "\d*µs"|grep -Po "\d*"|python3 ./format-data.py $line; done } > witness_latencies_distri.csv
+
+cat <<EOF
+===
+orig
+===
+EOF
+
+echo "latencies global"
+{ echo "delta" ; ls|grep '^orig-'|while read -r line; do cat $line/res/orig.csv|grep -Po "\d*µs"|grep -Po "\d*"; done } > orig_latencies_global.csv
+echo "latencies distri"
+{ echo "hs,type,delta";ls|grep '^orig-'|while read -r line; do cat $line/res/orig.csv|grep -Po "\d*µs"|grep -Po "\d*"|python3 ./format-data.py $line; done } > orig_latencies_distri.csv
+
+cat <<EOF
+===
+naive
+===
+EOF
+
+echo "latencies global"
+{ echo "delta" ; ls|grep '^naive-'|while read -r line; do cat $line/res/naive.csv|grep -Po "\d*µs"|grep -Po "\d*"; done } > naive_latencies_global.csv
+echo "latencies distri"
+{ echo "hs,type,delta";ls|grep '^naive-'|while read -r line; do cat $line/res/naive.csv|grep -Po "\d*µs"|grep -Po "\d*"|python3 ./format-data.py $line; done } > naive_latencies_distri.csv
+
+cat <<EOF
+===
+rr
+===
+EOF
+
+echo "latencies global"
+{ echo "delta" ; ls|grep '^rr-'|while read -r line; do cat $line/res/rr.csv|grep -Po "\d*µs"|grep -Po "\d*"; done } > rr_latencies_global.csv
+echo "latencies distri"
+{ echo "hs,type,delta";ls|grep '^rr-'|while read -r line; do cat $line/res/rr.csv|grep -Po "\d*µs"|grep -Po "\d*"|python3 ./format-data.py $line; done } > rr_latencies_distri.csv
+{ echo 'run,rcv' ; ls|grep '^rr-'|while read -r line; do echo -n "$line,"; cat $line/res/rr.csv|grep -Po "\d*µs"|grep -Po "\d*"|wc -l; done } > rr_lost.csv
+{ echo "run,pkt_id"; ls|grep '^rr-'|while read line; do comm -23 <(seq 1 6000|sort) <(grep -Po 'Packet \d*' $line/res/rr.csv | grep -Po '\d*'|sort) | sort -n | while read e; do echo "$line,$e"; done; done } > rr_missed.csv
+
+cat <<EOF 
+=== 
+rrh
+===
+latencies global
+EOF
+
+{ 
+  echo "delta" ; 
+  ls \
+  | grep '^rrh-' \
+  | while read -r line; do 
+      cat $line/res/rrh.csv \
+      | grep -Po "\d*µs" \
+      |grep -Po "\d*"; 
+    done 
+} > rrh_latencies_global.csv
+
+echo "latencies distri"
+{ 
+  echo "hs,type,delta";
+  ls \
+  | grep '^rrh-' \
+  | while read -r line; do 
+      cat $line/res/rrh.csv \
+      | grep -Po "\d*µs" \
+      | grep -Po "\d*" \
+      | python3 ./format-data.py $line; 
+    done 
+} > rrh_latencies_distri.csv
+
+echo "packet losts"
+{ 
+  echo 'run,rcv' ;
+  ls \
+  | grep '^rrh-' \
+  | while read -r line; do 
+      echo -n "$line,";
+      cat $line/res/rrh.csv \
+      | grep -Po "\d*µs" \
+      | grep -Po "\d*" \
+      | wc -l; 
+    done 
+} > rrh_lost.csv
+
+echo "blacklisted"
+{ 
+  echo "run,dead_links"; 
+  ls \
+  | grep '^rrh-' \
+  | while read line; do 
+      echo -n "$line,"; 
+      grep -Po 'Blacklist link=\d' $line/log/server-donar-stdout.log \
+      | sort \
+      | uniq -c \
+      | wc -l; 
+    done 
+} > rrh_blacklisted.csv
+
+echo "missed"
+{ 
+  echo "run,pkt_id";
+  ls \
+  | grep '^rrh-' \
+  | while read line; do 
+      comm -23 \
+        <(seq 1 6000 \
+          | sort) \
+        <(grep -Po 'Packet \d*' $line/res/rrh.csv \
+          | grep -Po '\d*' \
+          | sort) \
+      | sort -n \
+      | while read e; do
+          echo "$line,$e"; 
+        done 
+    done 
+} > rrh_missed.csv
+
+echo "flip blacklist"
+{ 
+  echo 'run,role,pos,count' ;
+  ls \
+  | grep '^rrh-' \
+  | for ct in {client,server}; do 
+      while read -r line; do
+        grep -Po 'Blacklist link=\d' $line/log/$ct-donar-stdout.log \
+        | grep -Po "\d" \
+        | sort \
+        | uniq -c \
+        | grep -Po '^\s*\d*' \
+        | grep -Po '\d*' \
+        | sort -n -r \
+        | { c=0; 
+            while read a; do
+              echo "$line,$ct,$c,$a"; 
+              ((c++)); 
+            done }
+      done
+    done
+} > rrh_flip_blacklist.csv
+
+cat <<EOF
+===
+dup2
+===
+EOF
+
+echo "latencies global"
+{ echo "delta" ; ls|grep '^dup2-'|while read -r line; do cat $line/res/dup2.csv|grep -Po "\d*µs"|grep -Po "\d*"; done } > dup2_global.csv
+echo "latencies distri"
+{ echo "hs,type,delta";ls|grep '^dup2-'|while read -r line; do cat $line/res/dup2.csv|grep -Po "\d*µs"|grep -Po "\d*"|python3 ./format-data.py $line; done } > dup2_distri.csv

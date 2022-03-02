@@ -1,0 +1,15 @@
+#!/bin/bash
+mkdir -p $6/{log,shared}
+cd $6/shared
+
+donar \
+  -a lightning \
+  -s \
+  -l $4 \
+  -p $5 \
+  -b \
+  -n \
+  -e 9000 \
+> ../log/server-donar-stdout.log 2> ../log/server-donar-stderr.log &
+
+measlat -h 127.0.0.1 -p 9000 -l -c $1 -i $2 -s $3 > ../log/server-measlat-stdout.log 2> ../log/server-measlat-stderr.log

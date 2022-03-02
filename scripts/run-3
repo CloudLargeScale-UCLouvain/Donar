@@ -1,0 +1,131 @@
+#!/bin/bash
+
+## EXPERIMENT RUNNER
+# exemple:  sudo ./scripts/run-3 2 . orig-client 100 100 100, orig-client 100 100 100 . orig-server, orig-server
+
+die() { echo "$*" 1>&2 ; exit 1; }
+
+DOCKNAME=`mktemp -u XXXXX`
+WAITFOR=7200 # 2 hours
+
+# SPLIT CLIENT AND SERVER TARGETS
+OLD_IFS=$IFS; IFS="."
+read -a PARTS <<< "$@"
+IFS=$OLD_IFS
+[[ ${#PARTS[@]} == 5 ]] || die "Separate count, clients, servers experiments and tor daemon command by dots. I expect 5 parts but got ${#PARTS[@]}"
+
+# EXTRACT DATA
+OLD_IFS=$IFS; IFS=","
+read -a CONFIG <<< "${PARTS[0]}"
+read -a CLIENT_TARGETS <<< "${PARTS[1]}"
+read -a SERVER_TARGETS <<< "${PARTS[2]}"
+read -a TOR_DAEMON_CLIENT <<< "${PARTS[3]}"
+read -a TOR_DAEMON_SERVER <<< "${PARTS[4]}"
+IFS=$OLD_IFS
+
+[[ ${#CLIENT_TARGETS[@]} == ${#SERVER_TARGETS[@]} ]] \
+  && [[ ${#SERVER_TARGETS[@]} == ${#TOR_DAEMON_CLIENT[@]} ]] \
+  && [[ ${#TOR_DAEMON_CLIENT[@]} == ${#TOR_DAEMON_SERVER[@]} ]] \
+  || die "Same number of declaration is required. Got ${#CLIENT_TARGETS[@]} clients, ${#SERVER_TARGETS[@]} servers, ${#TOR_DAEMON_CLIENT[@]} Tor daemon clients and ${#TOR_DAEMON_SERVER[@]} Tor daemon servers"
+instances=${#CLIENT_TARGETS[@]}
+REPEAT=${CONFIG[0]}
+IDENTIFIER=${CONFIG[1]}
+
+echo ":: Configuration Summary"
+echo "repeat=$REPEAT, identifier=$IDENTIFIER"
+for i in $(seq 0 $(expr $instances - 1)); do
+  echo "  instance=$i - server=${SERVER_TARGETS[$i]} - client=${CLIENT_TARGETS[$i]} - tor server=${TOR_DAEMON_SERVER[$i]} - tor client=${TOR_DAEMON_CLIENT[$i]}"
+done
+
+echo ":: Bootstrap"
+echo "Create output folder..."
+docker pull registry.gitlab.inria.fr/qdufour/donar
+docker run \
+  --rm \
+  --user root \
+  -v `pwd`/out:/home/donar/out \
+  registry.gitlab.inria.fr/qdufour/donar \
+  chown -R 1000:1000 /home/donar
+
+echo ":: Start experiment..."
+for j in $(seq 1 $REPEAT); do
+run_fold=`mktemp -up ./out XXXXXXXXXXXXXXXX`
+echo "start - batch_count=$j - folder=$run_fold"
+
+echo "__reset containers"
+for i in $(seq 0 $(expr $instances - 1)); do
+
+  echo "____clear $i"
+  docker container inspect ${DOCKNAME}_donarxp_server_${i} > /dev/null 2>&1 && docker kill ${DOCKNAME}_donarxp_server_${i}
+  docker container inspect ${DOCKNAME}_donarxp_client_${i} > /dev/null 2>&1 && docker kill ${DOCKNAME}_donarxp_client_${i}
+
+  echo "____spawning container for instance=$i..."
+  docker run \
+    --rm \
+    -d \
+    --name "${DOCKNAME}_donarxp_server_${i}" \
+    --privileged \
+    --cap-add=SYS_PTRACE \
+    --security-opt seccomp=unconfined \
+    -e HOME='/tmp' \
+    -v `pwd`/out:/home/donar/out \
+    registry.gitlab.inria.fr/qdufour/donar \
+    ${TOR_DAEMON_SERVER[$i]}
+
+  docker run \
+    --rm \
+    -d \
+    --privileged \
+    --cap-add=SYS_PTRACE \
+    --security-opt seccomp=unconfined \
+    --name "${DOCKNAME}_donarxp_client_${i}" \
+    -e HOME='/tmp' \
+    -v `pwd`/out:/home/donar/out \
+    registry.gitlab.inria.fr/qdufour/donar \
+    ${TOR_DAEMON_CLIENT[$i]}
+
+    echo "____create folder struct..."
+    docker exec ${DOCKNAME}_donarxp_client_${i} sh -c "mkdir -p $run_fold-$i; echo repeat=$REPEAT,identifier=$IDENTIFIER > $run_fold-$i/info.txt"
+    docker exec ${DOCKNAME}_donarxp_client_${i} sh -c "echo instance=$i - server=${SERVER_TARGETS[$i]} - client=${CLIENT_TARGETS[$i]} - tor server=${TOR_DAEMON_SERVER[$i]} - tor client=${TOR_DAEMON_CLIENT[$i]}>> $run_fold-$i/info.txt"
+done
+
+sleep 10
+
+echo "__launch servers"
+for i in $(seq 0 $(expr $instances - 1)); do
+  echo "    instance=$i - exec=${SERVER_TARGETS[$i]}"
+  docker exec ${DOCKNAME}_donarxp_server_$i ${SERVER_TARGETS[$i]} ${run_fold}-$i &
+  sleep 1
+done
+
+sleep 2
+echo "__launch clients"
+
+(subshellpid=$BASHPID 
+  (sleep $WAITFOR; echo "  timeout"; kill -9 $subshellpid) & 
+  (for i in $(seq 0 $(expr $instances - 1)); do
+    echo "    instance=$i - exec=${CLIENT_TARGETS[$i]}"
+    docker exec ${DOCKNAME}_donarxp_client_$i ${CLIENT_TARGETS[$i]} ${run_fold}-$i &
+    sleep 1
+  done; 
+  wait; 
+  echo "  ok"; 
+
+  for i in $(seq 0 $(expr $instances - 1)); do
+    docker exec ${DOCKNAME}_donarxp_client_${i} killall -15 donar; 
+    docker exec ${DOCKNAME}_donarxp_server_${i} killall -15 donar; 
+  done; 
+  
+  kill -15 $subshellpid
+  
+)) 2>/dev/null 
+
+echo "done"
+done
+
+echo ":: Clear Resources"
+for i in $(seq 0 $(expr $instances - 1)); do
+  echo "clear $i"
+  docker kill "${DOCKNAME}_donarxp_server_${i}"
+  docker kill "${DOCKNAME}_donarxp_client_${i}"
+done

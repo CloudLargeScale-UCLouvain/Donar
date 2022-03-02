@@ -1,0 +1,13 @@
+#!/bin/bash
+mkdir -p $3/{log,shared}
+cd $3/shared
+
+donar \
+  -a dup2 \
+  -s \
+  -l $1 \
+  -b \
+  -e 9000 \
+> ../log/server-donar-stdout.log 2> ../log/server-donar-stderr.log &
+
+udpecho -p 9000 -m -s $2 > ../log/server-udpecho-stdout.log 2> ../log/server-udpecho-stderr.log

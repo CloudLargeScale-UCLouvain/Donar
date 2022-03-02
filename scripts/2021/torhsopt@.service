@@ -1,0 +1,7 @@
+[Unit]
+Description=torhsopt
+
+[Service]
+ExecStart=/usr/local/bin/torhsopt %i
+WorkingDirectory=/root/torhsopt/
+
